@@ -1,0 +1,16 @@
+name: MinecraPI
+version: '1.0.1'
+main: com.dodo939.minecraPI.MinecraPI
+api-version: '1.21'
+prefix: MinecraPI
+authors: [ dodo939 ]
+description: Provides customizable REST API for Minecraft server
+website: https://dodo939.com
+
+softdepend: ["PlaceholderAPI"]
+
+commands:
+  minecrapi:
+    description: MinecraPI command
+    usage: /minecrapi <args>
+    aliases: [ mapi ]

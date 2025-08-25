@@ -1,0 +1,17 @@
+host: '127.0.0.1'
+port: 30025
+secret-key: ''
+timestamp-tolerance: 5000
+services:
+  test_value:
+    path: '/ping'
+    type: ping
+  test_command:
+    path: '/command'
+    type: command
+  test_papi:
+    path: '/papi'
+    type: papi
+  test_list_players:
+    path: '/list_players'
+    type: list_players
