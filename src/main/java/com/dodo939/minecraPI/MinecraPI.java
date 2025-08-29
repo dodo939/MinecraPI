@@ -1,16 +1,21 @@
 package com.dodo939.minecraPI;
 
+import io.javalin.Javalin;
 import io.javalin.http.UnauthorizedResponse;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.plugin.java.JavaPlugin;
-import io.javalin.Javalin;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Base64;
 import java.util.Objects;
 import java.util.logging.Logger;
@@ -19,7 +24,9 @@ public final class MinecraPI extends JavaPlugin {
     public static Javalin app;
     public static Logger logger;
     public static JavaPlugin plugin;
+    public static Connection conn;
     public boolean papi_existed = false;
+    public static boolean player_auth_enabled = false;
     private static long TIMESTAMP_TOLERANCE;
 
     @Override
@@ -36,10 +43,17 @@ public final class MinecraPI extends JavaPlugin {
             logger.info("PlaceholderAPI not detected.");
         }
 
-        reloadAll();
+        try {
+            reloadAll();
+        } catch (SQLException e) {
+            logger.severe("Failed to close existed sqlite connection.");
+        }
 
         // Register commands
         Objects.requireNonNull(getCommand("minecrapi")).setExecutor(new CommandHandler());
+
+        // Register listeners
+        Bukkit.getPluginManager().registerEvents(new PlayerJoinListener(), this);
     }
 
     @Override
@@ -49,16 +63,41 @@ public final class MinecraPI extends JavaPlugin {
             logger.info("Stopping Javalin server...");
             app.stop();
         }
+        if (conn != null) {
+            try {
+                logger.info("Closing SQLite connection...");
+                conn.close();
+            } catch (SQLException e) {
+                logger.severe("Failed to close existed sqlite connection.");
+            }
+        }
     }
 
-    public void reloadAll() {
+    public void reloadAll() throws SQLException {
         if (app != null) {
             logger.info("Stopping Javalin server...");
             app.stop();
         }
+        if (conn != null) {
+            logger.info("Closing SQLite connection...");
+            conn.close();
+        }
+        try {
+            conn = DriverManager.getConnection("jdbc:sqlite:" + (new File(plugin.getDataFolder(), "datas.db")).getAbsolutePath());
+        } catch (SQLException e) {
+            logger.severe("Failed to create sqlite connection. Disabling plugin!");
+            logger.severe(e.toString());
+            Bukkit.getPluginManager().disablePlugin(this);
+            return;
+        }
 
         saveDefaultConfig();
         reloadConfig();
+
+        // create table
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TABLE IF NOT EXISTS players (id INTEGER PRIMARY KEY AUTOINCREMENT, uuid TEXT, spid TEXT)");
+        }
 
         // Load config
         String host = Objects.requireNonNull(getConfig().getString("host"));
@@ -66,6 +105,7 @@ public final class MinecraPI extends JavaPlugin {
         String SECRET_KEY = getConfig().getString("secret-key");
         TIMESTAMP_TOLERANCE = getConfig().getInt("timestamp-tolerance");
         ConfigurationSection services = getConfig().getConfigurationSection("services");
+        player_auth_enabled = getConfig().getBoolean("enable-player-auth");
 
         app = Javalin.create().start(host, port);
 
@@ -119,6 +159,8 @@ public final class MinecraPI extends JavaPlugin {
                         else logger.warning("PlaceholderAPI not detected.");
                     }
                     case "list_players" -> RegisterUtils.registerListPlayers(path);
+                    case "bind" -> RegisterUtils.registerBind(path);
+                    case "unbind" -> RegisterUtils.registerUnbind(path);
                     default -> logger.warning("Unknown type: " + type);
                 }
             }

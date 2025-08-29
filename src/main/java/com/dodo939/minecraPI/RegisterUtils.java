@@ -1,13 +1,16 @@
 package com.dodo939.minecraPI;
 
-import org.bukkit.Bukkit;
 import me.clip.placeholderapi.PlaceholderAPI;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.StringJoiner;
+import java.util.UUID;
 
-import static com.dodo939.minecraPI.MinecraPI.app;
-import static com.dodo939.minecraPI.MinecraPI.plugin;
+import static com.dodo939.minecraPI.MinecraPI.*;
 
 public class RegisterUtils {
 
@@ -55,6 +58,69 @@ public class RegisterUtils {
                 joiner.add(player.getName());
             }
             ctx.result(joiner.toString());
+        });
+    }
+
+    public static void registerBind(String path) {
+        app.post(path, ctx -> {
+            String[] body = ctx.body().split(" ");
+            if (body.length != 2) {
+                ctx.status(400).result("Invalid request body: " + ctx.body());
+                return;
+            }
+            String spid = body[0];
+            String code = body[1];
+            UUID uuid;
+
+            try (PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM players WHERE spid = ? LIMIT 1")) {
+                pstmt.setString(1, spid);
+
+                ResultSet st = pstmt.executeQuery();
+                if (st.next()) {
+                    ctx.status(409).result("");
+                    return;
+                }
+
+                uuid = VerificationUtils.getUUIDByCode(code);
+                if (uuid == null) {
+                    ctx.status(400).result();
+                    return;
+                }
+            } catch (SQLException e) {
+                ctx.status(500).result(e.toString());
+                return;
+            }
+
+            try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO players (uuid, spid) VALUES (?, ?)")) {
+                pstmt.setString(1, uuid.toString());
+                pstmt.setString(2, spid);
+                pstmt.execute();
+                ctx.result("bind successfully");
+            } catch (SQLException e) {
+                ctx.status(500).result(e.toString());
+            }
+        });
+    }
+
+    public static void registerUnbind(String path) {
+        app.post(path, ctx -> {
+            String spid = ctx.body();
+            try (PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM players WHERE spid = ? LIMIT 1")) {
+                pstmt.setString(1, spid);
+
+                ResultSet st = pstmt.executeQuery();
+                if (!st.next()) {
+                    ctx.status(404).result("");
+                    return;
+                }
+
+                PreparedStatement ps = conn.prepareStatement("DELETE FROM players WHERE spid = ?");
+                ps.setString(1, spid);
+                ps.execute();
+                ctx.result("unbind successfully");
+            } catch (SQLException e) {
+                ctx.status(500).result(e.toString());
+            }
         });
     }
 }

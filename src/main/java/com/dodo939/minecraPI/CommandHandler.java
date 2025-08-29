@@ -5,6 +5,8 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
+import java.sql.SQLException;
+
 public class CommandHandler implements CommandExecutor {
 
     @Override
@@ -22,7 +24,12 @@ public class CommandHandler implements CommandExecutor {
         switch (args[0]) {
             case "help" -> sendHelpMessage(sender);
             case "reload" -> {
-                MinecraPI.getPlugin(MinecraPI.class).reloadAll();
+                try {
+                    MinecraPI.getPlugin(MinecraPI.class).reloadAll();
+                } catch (SQLException e) {
+                    sender.sendMessage("§cFailed to close existed sqlite connection.");
+                    return true;
+                }
                 sender.sendMessage("§aConfig reloaded.");
             }
             default -> sender.sendMessage("§cInvalid arguments. See /minecrapi help");
