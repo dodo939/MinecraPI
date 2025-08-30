@@ -125,7 +125,7 @@ public class RegisterUtils {
     }
 
     public static void registerQuery(String path) {
-        app.get(path + "/:spid", ctx -> {
+        app.get(path + "{spid}", ctx -> {
             String spid = ctx.pathParam("spid");
             try (PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM players WHERE spid = ? LIMIT 1")) {
                 pstmt.setString(1, spid);
