@@ -77,7 +77,7 @@ public class RegisterUtils {
 
                 ResultSet st = pstmt.executeQuery();
                 if (st.next()) {
-                    ctx.status(409).result("");
+                    ctx.status(409).result(st.getString("uuid"));
                     return;
                 }
 
@@ -95,7 +95,7 @@ public class RegisterUtils {
                 pstmt.setString(1, uuid.toString());
                 pstmt.setString(2, spid);
                 pstmt.execute();
-                ctx.result("bind successfully");
+                ctx.result(uuid.toString());
             } catch (SQLException e) {
                 ctx.status(500).result(e.toString());
             }
@@ -108,8 +108,8 @@ public class RegisterUtils {
             try (PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM players WHERE spid = ? LIMIT 1")) {
                 pstmt.setString(1, spid);
 
-                ResultSet st = pstmt.executeQuery();
-                if (!st.next()) {
+                ResultSet rs = pstmt.executeQuery();
+                if (!rs.next()) {
                     ctx.status(404).result("");
                     return;
                 }
@@ -117,7 +117,25 @@ public class RegisterUtils {
                 PreparedStatement ps = conn.prepareStatement("DELETE FROM players WHERE spid = ?");
                 ps.setString(1, spid);
                 ps.execute();
-                ctx.result("unbind successfully");
+                ctx.result(rs.getString("uuid"));
+            } catch (SQLException e) {
+                ctx.status(500).result(e.toString());
+            }
+        });
+    }
+
+    public static void registerQuery(String path) {
+        app.get(path + "/:spid", ctx -> {
+            String spid = ctx.pathParam("spid");
+            try (PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM players WHERE spid = ? LIMIT 1")) {
+                pstmt.setString(1, spid);
+
+                ResultSet rs = pstmt.executeQuery();
+                if (rs.next()) {
+                    ctx.result(rs.getString("uuid"));
+                } else {
+                    ctx.status(404).result("");
+                }
             } catch (SQLException e) {
                 ctx.status(500).result(e.toString());
             }

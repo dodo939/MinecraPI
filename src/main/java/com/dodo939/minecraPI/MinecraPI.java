@@ -161,6 +161,7 @@ public final class MinecraPI extends JavaPlugin {
                     case "list_players" -> RegisterUtils.registerListPlayers(path);
                     case "bind" -> RegisterUtils.registerBind(path);
                     case "unbind" -> RegisterUtils.registerUnbind(path);
+                    case "query" -> RegisterUtils.registerQuery(path);
                     default -> logger.warning("Unknown type: " + type);
                 }
             }

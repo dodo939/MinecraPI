@@ -22,3 +22,6 @@ services:
   test_unbind:
     path: '/unbind'
     type: unbind
+  test_query:
+    path: '/query'
+    type: query
