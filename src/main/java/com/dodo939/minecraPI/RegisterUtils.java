@@ -91,6 +91,9 @@ public class RegisterUtils {
                 return;
             }
 
+            // Remove verification code
+            VerificationUtils.removeVerificationCode(code);
+
             try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO players (uuid, spid) VALUES (?, ?)")) {
                 pstmt.setString(1, uuid.toString());
                 pstmt.setString(2, spid);
@@ -118,6 +121,35 @@ public class RegisterUtils {
                 ps.setString(1, spid);
                 ps.execute();
                 ctx.result(rs.getString("uuid"));
+            } catch (SQLException e) {
+                ctx.status(500).result(e.toString());
+            }
+        });
+    }
+
+    public static void registerClear(String path) {
+        app.post(path, ctx -> {
+            String[] spids = ctx.body().split(",");
+
+            try (PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM players")) {
+                ResultSet rs = pstmt.executeQuery();
+                int count = 0;
+                while (rs.next()) {
+                    boolean found = false;
+                    for (String spid : spids) {
+                        if (spid.equals(rs.getString("spid"))) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        count++;
+                        PreparedStatement ps = conn.prepareStatement("DELETE FROM players WHERE spid = ?");
+                        ps.setString(1, rs.getString("spid"));
+                        ps.execute();
+                    }
+                }
+                ctx.result(count + "");
             } catch (SQLException e) {
                 ctx.status(500).result(e.toString());
             }

@@ -26,8 +26,7 @@ public final class MinecraPI extends JavaPlugin {
     public static JavaPlugin plugin;
     public static Connection conn;
     public boolean papi_existed = false;
-    public static boolean player_auth_enabled = false;
-    private static long TIMESTAMP_TOLERANCE;
+    public static MyConfig config = new MyConfig();
 
     @Override
     public void onEnable() {
@@ -83,6 +82,9 @@ public final class MinecraPI extends JavaPlugin {
             conn.close();
         }
         try {
+            if (!plugin.getDataFolder().exists()) {
+                plugin.getDataFolder().mkdirs();
+            }
             conn = DriverManager.getConnection("jdbc:sqlite:" + (new File(plugin.getDataFolder(), "datas.db")).getAbsolutePath());
         } catch (SQLException e) {
             logger.severe("Failed to create sqlite connection. Disabling plugin!");
@@ -100,17 +102,19 @@ public final class MinecraPI extends JavaPlugin {
         }
 
         // Load config
-        String host = Objects.requireNonNull(getConfig().getString("host"));
-        int port = getConfig().getInt("port");
-        String SECRET_KEY = getConfig().getString("secret-key");
-        TIMESTAMP_TOLERANCE = getConfig().getInt("timestamp-tolerance");
+        config.host = Objects.requireNonNull(getConfig().getString("host"));
+        config.port = getConfig().getInt("port");
+        config.secret_key = getConfig().getString("secret_key");
+        config.timestamp_tolerance = getConfig().getInt("timestamp_tolerance");
+        config.enable_player_auth = getConfig().getBoolean("enable_player_auth");
+        config.notice_message = getConfig().getStringList("notice_message");
+        config.error_message = getConfig().getStringList("error_message");
         ConfigurationSection services = getConfig().getConfigurationSection("services");
-        player_auth_enabled = getConfig().getBoolean("enable-player-auth");
 
-        app = Javalin.create().start(host, port);
+        app = Javalin.create().start(config.host, config.port);
 
         // Authentication
-        if (SECRET_KEY != null && !SECRET_KEY.isEmpty()) {
+        if (config.secret_key != null && !config.secret_key.isEmpty()) {
             app.before(ctx -> {
                 String clientSignature = ctx.header("X-Signature");
                 String clientTimestamp = ctx.header("X-Timestamp");
@@ -121,7 +125,7 @@ public final class MinecraPI extends JavaPlugin {
                 }
 
                 long serverTimestamp = System.currentTimeMillis();
-                if (Math.abs(serverTimestamp - Long.parseLong(clientTimestamp)) > TIMESTAMP_TOLERANCE) {
+                if (Math.abs(serverTimestamp - Long.parseLong(clientTimestamp)) > config.timestamp_tolerance) {
                     throw new UnauthorizedResponse("Signature has expired");
                 }
 
@@ -132,7 +136,7 @@ public final class MinecraPI extends JavaPlugin {
                     requestBody
                 );
 
-                String serverSignature = generateHmacSHA256AsBase64(signatureBase, SECRET_KEY);
+                String serverSignature = generateHmacSHA256AsBase64(signatureBase, config.secret_key);
                 if (!serverSignature.equals(clientSignature)) {
                     throw new UnauthorizedResponse("Signature inconsistency");
                 }
@@ -161,6 +165,7 @@ public final class MinecraPI extends JavaPlugin {
                     case "list_players" -> RegisterUtils.registerListPlayers(path);
                     case "bind" -> RegisterUtils.registerBind(path);
                     case "unbind" -> RegisterUtils.registerUnbind(path);
+                    case "clear" -> RegisterUtils.registerClear(path);
                     case "query" -> RegisterUtils.registerQuery(path);
                     default -> logger.warning("Unknown type: " + type);
                 }

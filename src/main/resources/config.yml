@@ -1,8 +1,18 @@
 host: '127.0.0.1'
 port: 30025
-secret-key: ''
-timestamp-tolerance: 5000
-enable-player-auth: false
+secret_key: ''
+timestamp_tolerance: 5000
+enable_player_auth: false
+notice_message:
+  - '§e请加入官方QQ群聊XXXXXXXXXX，发送以下内容：'
+  - ''
+  - '§b§n绑定{0}'
+  - ''
+  - '§c此验证码将于1分钟后失效，在此之前，切勿将验证码泄露于他人！'
+error_message:
+  - '§c发生内部错误，这不是你的问题，请截图并发送给管理员'
+  - ''
+  - '{0}'
 services:
   test_value:
     path: '/ping'
@@ -22,6 +32,9 @@ services:
   test_unbind:
     path: '/unbind'
     type: unbind
+  test_clear:
+    path: '/clear'
+    type: clear
   test_query:
     path: '/query'
     type: query
