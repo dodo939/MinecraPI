@@ -3,6 +3,12 @@ port: 30025
 secret_key: ''
 timestamp_tolerance: 5000
 enable_player_auth: false
+# The maximum number of players allowed to join from the same IP address
+# The player who has 'minecrapi.skip_ip_check' permission will not be checked
+# 0 for unlimited (disable this feature)
+max_player_per_ip: 0
+ip_limit_message:
+  - '§c同一 IP 下的玩家数量已达上限！'
 notice_message:
   - '§e请加入官方QQ群聊XXXXXXXXXX，发送以下内容：'
   - ''

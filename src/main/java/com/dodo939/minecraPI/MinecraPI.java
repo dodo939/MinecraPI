@@ -83,6 +83,7 @@ public final class MinecraPI extends JavaPlugin {
         }
         try {
             if (!plugin.getDataFolder().exists()) {
+                // noinspection ResultOfMethodCallIgnored
                 plugin.getDataFolder().mkdirs();
             }
             conn = DriverManager.getConnection("jdbc:sqlite:" + (new File(plugin.getDataFolder(), "datas.db")).getAbsolutePath());
@@ -107,6 +108,8 @@ public final class MinecraPI extends JavaPlugin {
         config.secret_key = getConfig().getString("secret_key");
         config.timestamp_tolerance = getConfig().getInt("timestamp_tolerance");
         config.enable_player_auth = getConfig().getBoolean("enable_player_auth");
+        config.max_player_per_ip = getConfig().getInt("max_player_per_ip");
+        config.ip_limit_message = getConfig().getStringList("ip_limit_message");
         config.notice_message = getConfig().getStringList("notice_message");
         config.error_message = getConfig().getStringList("error_message");
         ConfigurationSection services = getConfig().getConfigurationSection("services");
