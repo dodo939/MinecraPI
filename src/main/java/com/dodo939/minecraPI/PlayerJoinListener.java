@@ -51,7 +51,7 @@ public class PlayerJoinListener implements Listener {
     @EventHandler
     public void onPlayerLogin(PlayerLoginEvent event) {
         Player player = event.getPlayer();
-        if (config.max_player_per_ip <= 0 || player.hasPermission("minecrapi.minecrapi.skip_ip_check"))
+        if (config.max_player_per_ip <= 0 || player.hasPermission("minecrapi.skip_ip_check"))
             return;
 
         InetAddress addr = event.getAddress();
