@@ -4,11 +4,11 @@ import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.StringJoiner;
-import java.util.UUID;
 
 import static com.dodo939.minecraPI.MinecraPI.*;
 
@@ -70,9 +70,9 @@ public class RegisterUtils {
             }
             String spid = body[0];
             String code = body[1];
-            UUID uuid;
+            String uuid;
 
-            try (PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM players WHERE spid = ? LIMIT 1")) {
+            try (Connection conn = DBPool.getConnection(); PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM minecrapi_players WHERE spid = ? LIMIT 1")) {
                 pstmt.setString(1, spid);
 
                 ResultSet st = pstmt.executeQuery();
@@ -94,11 +94,11 @@ public class RegisterUtils {
             // Remove verification code
             VerificationUtils.removeVerificationCode(code);
 
-            try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO players (uuid, spid) VALUES (?, ?)")) {
-                pstmt.setString(1, uuid.toString());
+            try (Connection conn = DBPool.getConnection(); PreparedStatement pstmt = conn.prepareStatement("INSERT INTO minecrapi_players (uuid, spid) VALUES (?, ?)")) {
+                pstmt.setString(1, uuid);
                 pstmt.setString(2, spid);
                 pstmt.execute();
-                ctx.result(uuid.toString());
+                ctx.result(uuid);
             } catch (SQLException e) {
                 ctx.status(500).result(e.toString());
             }
@@ -108,7 +108,8 @@ public class RegisterUtils {
     public static void registerUnbind(String path) {
         app.post(path, ctx -> {
             String spid = ctx.body();
-            try (PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM players WHERE spid = ? LIMIT 1")) {
+
+            try (Connection conn = DBPool.getConnection(); PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM minecrapi_players WHERE spid = ? LIMIT 1")) {
                 pstmt.setString(1, spid);
 
                 ResultSet rs = pstmt.executeQuery();
@@ -117,7 +118,7 @@ public class RegisterUtils {
                     return;
                 }
 
-                PreparedStatement ps = conn.prepareStatement("DELETE FROM players WHERE spid = ?");
+                PreparedStatement ps = conn.prepareStatement("DELETE FROM minecrapi_players WHERE spid = ?");
                 ps.setString(1, spid);
                 ps.execute();
                 ctx.result(rs.getString("uuid"));
@@ -131,7 +132,7 @@ public class RegisterUtils {
         app.post(path, ctx -> {
             String[] spids = ctx.body().split(",");
 
-            try (PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM players")) {
+            try (Connection conn = DBPool.getConnection(); PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM minecrapi_players")) {
                 ResultSet rs = pstmt.executeQuery();
                 int count = 0;
                 while (rs.next()) {
@@ -144,7 +145,7 @@ public class RegisterUtils {
                     }
                     if (!found) {
                         count++;
-                        PreparedStatement ps = conn.prepareStatement("DELETE FROM players WHERE spid = ?");
+                        PreparedStatement ps = conn.prepareStatement("DELETE FROM minecrapi_players WHERE spid = ?");
                         ps.setString(1, rs.getString("spid"));
                         ps.execute();
                     }
@@ -159,7 +160,8 @@ public class RegisterUtils {
     public static void registerQuery(String path) {
         app.get(path + "{spid}", ctx -> {
             String spid = ctx.pathParam("spid");
-            try (PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM players WHERE spid = ? LIMIT 1")) {
+
+            try (Connection conn = DBPool.getConnection(); PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM minecrapi_players WHERE spid = ? LIMIT 1")) {
                 pstmt.setString(1, spid);
 
                 ResultSet rs = pstmt.executeQuery();

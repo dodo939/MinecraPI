@@ -12,4 +12,14 @@ public class MyConfig {
     List<String> ip_limit_message;
     List<String> notice_message;
     List<String> error_message;
+
+    MySqlConfig mysql = new MySqlConfig();
+    String redis_url;
+}
+
+class MySqlConfig {
+    String driver;
+    String url;
+    String username;
+    String password;
 }

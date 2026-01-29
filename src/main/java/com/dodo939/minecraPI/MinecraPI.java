@@ -4,17 +4,15 @@ import io.javalin.Javalin;
 import io.javalin.http.UnauthorizedResponse;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Base64;
 import java.util.Objects;
@@ -24,7 +22,6 @@ public final class MinecraPI extends JavaPlugin {
     public static Javalin app;
     public static Logger logger;
     public static JavaPlugin plugin;
-    public static Connection conn;
     public boolean papi_existed = false;
     public static MyConfig config = new MyConfig();
 
@@ -44,8 +41,8 @@ public final class MinecraPI extends JavaPlugin {
 
         try {
             reloadAll();
-        } catch (SQLException e) {
-            logger.severe("Failed to close existed sqlite connection.");
+        } catch (Exception e) {
+            logger.severe("Something went wrong: " + e);
         }
 
         // Register commands
@@ -62,57 +59,59 @@ public final class MinecraPI extends JavaPlugin {
             logger.info("Stopping Javalin server...");
             app.stop();
         }
-        if (conn != null) {
-            try {
-                logger.info("Closing SQLite connection...");
-                conn.close();
-            } catch (SQLException e) {
-                logger.severe("Failed to close existed sqlite connection.");
-            }
-        }
+
+        logger.info("Closing MySQL connection...");
+        DBPool.close();
     }
 
-    public void reloadAll() throws SQLException {
+    public void reloadAll() throws Exception {
         if (app != null) {
             logger.info("Stopping Javalin server...");
             app.stop();
         }
-        if (conn != null) {
-            logger.info("Closing SQLite connection...");
-            conn.close();
-        }
-        try {
-            if (!plugin.getDataFolder().exists()) {
-                // noinspection ResultOfMethodCallIgnored
-                plugin.getDataFolder().mkdirs();
-            }
-            conn = DriverManager.getConnection("jdbc:sqlite:" + (new File(plugin.getDataFolder(), "datas.db")).getAbsolutePath());
-        } catch (SQLException e) {
-            logger.severe("Failed to create sqlite connection. Disabling plugin!");
-            logger.severe(e.toString());
-            Bukkit.getPluginManager().disablePlugin(this);
-            return;
+
+        DBPool.close();
+
+        if (!plugin.getDataFolder().exists()) {
+            // noinspection ResultOfMethodCallIgnored
+            plugin.getDataFolder().mkdirs();
         }
 
         saveDefaultConfig();
         reloadConfig();
 
-        // create table
-        try (Statement stmt = conn.createStatement()) {
-            stmt.execute("CREATE TABLE IF NOT EXISTS players (id INTEGER PRIMARY KEY AUTOINCREMENT, uuid TEXT, spid TEXT)");
+        if (Objects.equals(getConfig().getString("mysql.username"), "please_change_me")) {
+            logger.warning("Please change the config in config.yml and then /mapi reload");
+            return;
         }
 
         // Load config
-        config.host = Objects.requireNonNull(getConfig().getString("host"));
-        config.port = getConfig().getInt("port");
-        config.secret_key = getConfig().getString("secret_key");
-        config.timestamp_tolerance = getConfig().getInt("timestamp_tolerance");
-        config.enable_player_auth = getConfig().getBoolean("enable_player_auth");
-        config.max_player_per_ip = getConfig().getInt("max_player_per_ip");
-        config.ip_limit_message = getConfig().getStringList("ip_limit_message");
-        config.notice_message = getConfig().getStringList("notice_message");
-        config.error_message = getConfig().getStringList("error_message");
-        ConfigurationSection services = getConfig().getConfigurationSection("services");
+        FileConfiguration _config = getConfig();
+        config.host = Objects.requireNonNull(_config.getString("host"));
+        config.port = _config.getInt("port");
+        config.secret_key = _config.getString("secret_key");
+        config.timestamp_tolerance = _config.getInt("timestamp_tolerance");
+        config.enable_player_auth = _config.getBoolean("enable_player_auth");
+
+        config.mysql.driver = _config.getString("mysql.driver");
+        config.mysql.url = _config.getString("mysql.url");
+        config.mysql.username = _config.getString("mysql.username");
+        config.mysql.password = _config.getString("mysql.password");
+
+        config.redis_url = _config.getString("redis_url");
+
+        config.max_player_per_ip = _config.getInt("max_player_per_ip");
+        config.ip_limit_message = _config.getStringList("ip_limit_message");
+        config.notice_message = _config.getStringList("notice_message");
+        config.error_message = _config.getStringList("error_message");
+        ConfigurationSection services = _config.getConfigurationSection("services");
+
+        RedisManager.init();
+        DBPool.init();
+
+        try (Connection conn = DBPool.getConnection(); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TABLE IF NOT EXISTS minecrapi_players (id INT PRIMARY KEY AUTO_INCREMENT, uuid VARCHAR(36), spid VARCHAR(20))");
+        }
 
         app = Javalin.create().start(config.host, config.port);
 

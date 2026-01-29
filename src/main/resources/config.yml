@@ -3,6 +3,12 @@ port: 30025
 secret_key: ''
 timestamp_tolerance: 5000
 enable_player_auth: false
+mysql:
+  driver: 'com.mysql.cj.jdbc.Driver'
+  url: 'jdbc:mysql://127.0.0.1:3306/database?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8'
+  username: 'please_change_me'
+  password: 'please_change_me'
+redis_url: 'redis://127.0.0.1:6379'
 # The maximum number of players allowed to join from the same IP address
 # The player who has 'minecrapi.skip_ip_check' permission will not be checked
 # 0 for unlimited (disable this feature)

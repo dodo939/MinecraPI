@@ -1,36 +1,28 @@
 package com.dodo939.minecraPI;
 
-import java.util.HashMap;
-import java.util.Map;
+import redis.clients.jedis.RedisClient;
+
 import java.util.Random;
-import java.util.UUID;
 
 public class VerificationUtils {
-    private static final Map<String, VerificationData> verificationDatas = new HashMap<>();
     private static final String CHARACTERS = "0123456789";
     private static final Random RANDOM = new Random(System.currentTimeMillis());
 
-    public static String setVerificationCode(UUID uuid) {
+    public static String setVerificationCode(String uuid) {
         String code = generateVerificationCode();
-        long expiryTime = System.currentTimeMillis() + (60 * 1000);
-        verificationDatas.put(code, new VerificationData(uuid, expiryTime));
+        RedisClient client = RedisManager.getClient();
+        client.setex("minecrapi:code:" + code, 60, uuid);
         return code;
     }
 
-    public static UUID getUUIDByCode(String code) {
-        VerificationData data = verificationDatas.get(code);
-        if (data == null) return null;
-
-        if (System.currentTimeMillis() > data.expiryTime) {
-            verificationDatas.remove(code);
-            return null;
-        }
-
-        return data.uuid;
+    public static String getUUIDByCode(String code) {
+        RedisClient client = RedisManager.getClient();
+        return client.get("minecrapi:code:" + code);
     }
 
     public static void removeVerificationCode(String code) {
-        verificationDatas.remove(code);
+        RedisClient client = RedisManager.getClient();
+        client.del("minecrapi:code:" + code);
     }
 
     private static String generateVerificationCode() {
@@ -40,24 +32,19 @@ public class VerificationUtils {
             sb.append(CHARACTERS.charAt(index));
         }
         String code = sb.toString();
-        if (verificationDatas.get(code) != null) {
+        RedisClient client = RedisManager.getClient();
+        if (client.exists("minecrapi:code:" + code)) {
             return generateVerificationCode();
         }
         return code;
     }
 
-    public static void cleanCodes() {
-        long currentTime = System.currentTimeMillis();
-        verificationDatas.entrySet().removeIf(entry -> currentTime > entry.getValue().expiryTime);
-    }
-
-    private static class VerificationData {
-        UUID uuid;
-        long expiryTime;
-
-        VerificationData(UUID uuid, long expiryTime) {
-            this.uuid = uuid;
-            this.expiryTime = expiryTime;
-        }
+    public static void cleanCodes(String uuid) {
+        RedisClient client = RedisManager.getClient();
+        client.keys("minecrapi:code:*").forEach(key -> {
+            if (client.get(key).equals(uuid)) {
+                client.del(key);
+            }
+        });
     }
 }
