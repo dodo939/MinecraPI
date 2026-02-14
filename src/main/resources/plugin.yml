@@ -1,5 +1,5 @@
 name: MinecraPI
-version: '1.3.0'
+version: ${project.version}
 main: com.dodo939.minecraPI.MinecraPI
 api-version: '1.21.11'
 prefix: MinecraPI

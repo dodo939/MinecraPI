@@ -93,7 +93,6 @@ public final class MinecraPI extends JavaPlugin {
         config.timestamp_tolerance = _config.getInt("timestamp_tolerance");
         config.enable_player_auth = _config.getBoolean("enable_player_auth");
 
-        config.mysql.driver = _config.getString("mysql.driver");
         config.mysql.url = _config.getString("mysql.url");
         config.mysql.username = _config.getString("mysql.username");
         config.mysql.password = _config.getString("mysql.password");

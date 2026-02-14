@@ -18,7 +18,6 @@ public class MyConfig {
 }
 
 class MySqlConfig {
-    String driver;
     String url;
     String username;
     String password;

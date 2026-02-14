@@ -4,7 +4,6 @@ secret_key: ''
 timestamp_tolerance: 5000
 enable_player_auth: false
 mysql:
-  driver: 'com.mysql.cj.jdbc.Driver'
   url: 'jdbc:mysql://127.0.0.1:3306/database?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8'
   username: 'please_change_me'
   password: 'please_change_me'

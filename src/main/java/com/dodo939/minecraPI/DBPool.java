@@ -19,7 +19,6 @@ public class DBPool {
         _config.setJdbcUrl(config.mysql.url);
         _config.setUsername(config.mysql.username);
         _config.setPassword(config.mysql.password);
-        _config.setDriverClassName(config.mysql.driver);
 
         _config.setMaximumPoolSize(20);
         _config.setMinimumIdle(5);
