@@ -3,7 +3,6 @@ package com.dodo939.minecraPI;
 import io.javalin.Javalin;
 import io.javalin.http.UnauthorizedResponse;
 import org.bukkit.Bukkit;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -103,7 +102,6 @@ public final class MinecraPI extends JavaPlugin {
         config.ip_limit_message = _config.getStringList("ip_limit_message");
         config.notice_message = _config.getStringList("notice_message");
         config.error_message = _config.getStringList("error_message");
-        ConfigurationSection services = _config.getConfigurationSection("services");
 
         RedisManager.init();
         DBPool.init();
@@ -147,31 +145,19 @@ public final class MinecraPI extends JavaPlugin {
         }
 
         // Register services
-        if (services != null) {
-            for (String key : services.getKeys(false)) {
-                ConfigurationSection svc = services.getConfigurationSection(key);
-                if (svc == null) continue;
-
-                String path = Objects.requireNonNull(svc.getString("path"));
-                String type = Objects.requireNonNull(svc.getString("type"));
-
-                logger.info("Registering " + path);
-                switch (type) {
-                    case "ping" -> RegisterUtils.registerPing(path);
-                    case "command" -> RegisterUtils.registerCommand(path);
-                    case "papi" -> {
-                        if (papi_existed) RegisterUtils.registerPlaceholderAPI(path);
-                        else logger.warning("PlaceholderAPI not detected.");
-                    }
-                    case "list_players" -> RegisterUtils.registerListPlayers(path);
-                    case "bind" -> RegisterUtils.registerBind(path);
-                    case "unbind" -> RegisterUtils.registerUnbind(path);
-                    case "clear" -> RegisterUtils.registerClear(path);
-                    case "query" -> RegisterUtils.registerQuery(path);
-                    default -> logger.warning("Unknown type: " + type);
-                }
-            }
+        logger.info("Registering services...");
+        RegisterUtils.registerPing("/ping");
+        RegisterUtils.registerCommand("/command");
+        if (papi_existed) {
+            RegisterUtils.registerPlaceholderAPI("/papi");
+        } else {
+            logger.warning("PlaceholderAPI not detected.");
         }
+        RegisterUtils.registerListPlayers("/list");
+        RegisterUtils.registerBind("/bind");
+        RegisterUtils.registerUnbind("/unbind");
+        RegisterUtils.registerClear("/clear");
+        RegisterUtils.registerQuery("/query");
     }
 
     private static String generateHmacSHA256AsBase64(String data, String key) {
