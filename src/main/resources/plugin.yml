@@ -2,9 +2,10 @@ name: MinecraPI
 version: ${project.version}
 main: com.dodo939.minecraPI.MinecraPI
 api-version: '1.21.11'
+folia-supported: true
 prefix: MinecraPI
 authors: [ dodo939 ]
-description: Provides customizable REST API for Minecraft server
+description: This plugin provides HTTP API for Minecraft server
 website: https://dodo939.com
 
 softdepend: ["PlaceholderAPI"]
